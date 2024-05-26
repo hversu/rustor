@@ -1,4 +1,4 @@
-## rustor
+## rustor - proxy tor server
 
 # instructions
 
