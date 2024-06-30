@@ -41,18 +41,31 @@ async fn transfer(
 }
 
 async fn handle_client(inbound: TcpStream) {
-    // Specify the target address you want to forward traffic to.
-    // For this example, we are forwarding to a Tor-proxy running locally on port 9050
+    // Forward to Tor running locally on port 9050
     let proxy_addr: SocketAddr = "127.0.0.1:9050".parse().unwrap();
-
     let (sender, mut receiver) = mpsc::channel(1);
+    
+    // Log the connection time and client IP
+    let timestamp = Utc::now().to_rfc3339();
+    let client_ip = inbound.peer_addr().unwrap().ip().to_string();
+    log_connection(&timestamp, &client_ip);
+    
     spawn(transfer(inbound, proxy_addr, sender));
-
     if let Some(result) = receiver.recv().await {
         if let Err(e) = result {
             eprintln!("Failed to transfer data: {}", e);
         }
     }
+}
+
+fn log_connection(timestamp: &str, client_ip: &str) {
+    let log_entry = format!("{} - Connection from {}\n", timestamp, client_ip);
+    let mut file = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open("connections.log")
+        .unwrap();
+    file.write_all(log_entry.as_bytes()).unwrap();
 }
 
 #[tokio::main]
